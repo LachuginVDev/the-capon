@@ -1,0 +1,226 @@
+<?php
+/**
+ * ACF поля для детальной страницы модели
+ *
+ * @package The_Capon
+ */
+
+// Регистрируем ACF поля после инициализации ACF
+add_action( 'acf/init', 'the_capon_register_model_fields' );
+
+function the_capon_register_model_fields() {
+	if ( ! function_exists( 'acf_add_local_field_group' ) ) {
+		return;
+	}
+
+	acf_add_local_field_group(
+		array(
+			'key'                   => 'group_model_detail',
+			'title'                 => 'Детальная страница модели',
+			'fields'                => array(
+				array(
+					'key'               => 'field_model_slides',
+					'label'             => 'Слайды',
+					'name'              => 'model_slides',
+					'type'              => 'repeater',
+					'instructions'     => 'Добавьте слайды для детальной страницы. Первый слайд должен содержать видео.',
+					'required'          => 0,
+					'conditional_logic' => 0,
+					'wrapper'           => array(
+						'width' => '',
+						'class' => '',
+						'id'    => '',
+					),
+					'collapsed'         => '',
+					'min'               => 1,
+					'max'               => 0,
+					'layout'            => 'block',
+					'button_label'      => 'Добавить слайд',
+					'sub_fields'        => array(
+						array(
+							'key'               => 'field_slide_parameters',
+							'label'             => 'Параметры',
+							'name'              => 'parameters',
+							'type'              => 'repeater',
+							'instructions'      => 'Добавьте параметры модели',
+							'required'          => 0,
+							'conditional_logic' => 0,
+							'wrapper'           => array(
+								'width' => '',
+								'class' => '',
+								'id'    => '',
+							),
+							'collapsed'         => '',
+							'min'               => 0,
+							'max'               => 0,
+							'layout'            => 'table',
+							'button_label'      => 'Добавить параметр',
+							'sub_fields'        => array(
+								array(
+									'key'               => 'field_parameter_name',
+									'label'             => 'Название',
+									'name'              => 'name',
+									'type'              => 'text',
+									'instructions'      => '',
+									'required'          => 1,
+									'conditional_logic' => 0,
+									'wrapper'           => array(
+										'width' => '50',
+										'class' => '',
+										'id'    => '',
+									),
+									'default_value'     => '',
+									'placeholder'       => 'Например: Силуэт',
+									'prepend'           => '',
+									'append'            => '',
+									'maxlength'         => '',
+								),
+								array(
+									'key'               => 'field_parameter_value',
+									'label'             => 'Значение',
+									'name'              => 'value',
+									'type'              => 'text',
+									'instructions'      => '',
+									'required'          => 1,
+									'conditional_logic' => 0,
+									'wrapper'           => array(
+										'width' => '50',
+										'class' => '',
+										'id'    => '',
+									),
+									'default_value'     => '',
+									'placeholder'       => 'Например: А-силуэт',
+									'prepend'           => '',
+									'append'            => '',
+									'maxlength'         => '',
+								),
+							),
+						),
+						array(
+							'key'               => 'field_slide_description',
+							'label'             => 'Описание',
+							'name'              => 'description',
+							'type'              => 'textarea',
+							'instructions'      => '',
+							'required'          => 0,
+							'conditional_logic' => 0,
+							'wrapper'           => array(
+								'width' => '',
+								'class' => '',
+								'id'    => '',
+							),
+							'default_value'     => '',
+							'placeholder'       => '',
+							'maxlength'         => '',
+							'rows'              => 4,
+							'new_lines'         => '',
+						),
+						array(
+							'key'               => 'field_slide_price',
+							'label'             => 'Цена',
+							'name'              => 'price',
+							'type'              => 'number',
+							'instructions'      => '',
+							'required'          => 0,
+							'conditional_logic' => 0,
+							'wrapper'           => array(
+								'width' => '',
+								'class' => '',
+								'id'    => '',
+							),
+							'default_value'     => '',
+							'placeholder'       => '',
+							'prepend'           => '',
+							'append'            => '',
+							'min'               => 0,
+							'max'               => '',
+							'step'              => '',
+						),
+						array(
+							'key'               => 'field_slide_gallery',
+							'label'             => 'Фото альбома',
+							'name'              => 'gallery',
+							'type'              => 'gallery',
+							'instructions'      => 'Добавьте фотографии для альбома',
+							'required'          => 0,
+							'conditional_logic' => 0,
+							'wrapper'           => array(
+								'width' => '',
+								'class' => '',
+								'id'    => '',
+							),
+							'return_format'     => 'array',
+							'preview_size'      => 'medium',
+							'insert'            => 'append',
+							'library'           => 'all',
+							'min'               => 0,
+							'max'               => 0,
+							'min_width'         => 0,
+							'min_height'        => 0,
+							'min_size'          => 0,
+							'max_width'         => 0,
+							'max_height'        => 0,
+							'max_size'          => 0,
+							'mime_types'        => '',
+						),
+						array(
+							'key'               => 'field_slide_video',
+							'label'             => 'Видео MP4',
+							'name'              => 'video',
+							'type'              => 'file',
+							'instructions'      => 'Загрузите видео файл в формате MP4. Используется только для первого слайда.',
+							'required'          => 0,
+							'conditional_logic' => 0,
+							'wrapper'           => array(
+								'width' => '',
+								'class' => '',
+								'id'    => '',
+							),
+							'return_format'     => 'array',
+							'library'           => 'all',
+							'min_size'          => 0,
+							'max_size'          => 0,
+							'mime_types'        => 'mp4',
+						),
+					),
+				),
+				array(
+					'key'               => 'field_model_in_stock',
+					'label'             => 'Товар в наличии',
+					'name'              => 'model_in_stock',
+					'type'              => 'true_false',
+					'instructions'      => 'Отметьте, если товар есть в наличии',
+					'required'          => 0,
+					'conditional_logic' => 0,
+					'wrapper'           => array(
+						'width' => '',
+						'class' => '',
+						'id'    => '',
+					),
+					'message'           => 'Товар в наличии',
+					'default_value'     => 1,
+					'ui'                => 1,
+					'ui_on_text'        => 'Да',
+					'ui_off_text'       => 'Нет',
+				),
+			),
+			'location'              => array(
+				array(
+					array(
+						'param'    => 'post_type',
+						'operator' => '==',
+						'value'    => 'post',
+					),
+				),
+			),
+			'menu_order'            => 0,
+			'position'              => 'normal',
+			'style'                 => 'default',
+			'label_placement'       => 'top',
+			'instruction_placement' => 'label',
+			'hide_on_screen'        => '',
+			'active'                => true,
+			'description'           => '',
+		)
+	);
+}
