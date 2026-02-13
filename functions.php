@@ -168,11 +168,11 @@ function the_capon_scripts() {
 	wp_enqueue_style( 'the-capon-custom', get_template_directory_uri() . '/assets/css/custom.css', array(), _S_VERSION );
 	wp_enqueue_script( 'the-capon-custom', get_template_directory_uri() . '/js/custom.js', array( 'the-capon-main-script' ), _S_VERSION, true );
 
-	// Страница "Где купить" - Яндекс карта и магазины
+	// Leaflet + OpenStreetMap (бесплатно, без ключа)
 	if ( is_page_template( 'page-where-buy.php' ) ) {
-		// Подключаем Яндекс.Карты (ключ можно добавить в URL при необходимости)
-		wp_enqueue_script( 'the-capon-yandex-maps', 'https://api-maps.yandex.ru/2.1/?lang=ru_RU', array(), null, true );
-		wp_enqueue_script( 'the-capon-stores-map', get_template_directory_uri() . '/js/stores-map.js', array( 'the-capon-yandex-maps' ), _S_VERSION, true );
+		wp_enqueue_style( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', array(), '1.9.4' );
+		wp_enqueue_script( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', array(), '1.9.4', true );
+		wp_enqueue_script( 'the-capon-stores-map', get_template_directory_uri() . '/js/stores-map.js', array( 'leaflet' ), _S_VERSION, true );
 	}
 
 	// Видео для страницы "О компании"
@@ -183,11 +183,19 @@ function the_capon_scripts() {
 	// Модальное окно поиска
 	wp_enqueue_script( 'the-capon-search-modal', get_template_directory_uri() . '/js/search-modal.js', array(), _S_VERSION, true );
 
+	// Главная: AOS (анимация при скролле)
+	if ( is_front_page() ) {
+		wp_enqueue_style( 'aos', 'https://unpkg.com/aos@2.3.4/dist/aos.css', array(), '2.3.4' );
+		wp_enqueue_script( 'aos', 'https://unpkg.com/aos@2.3.4/dist/aos.js', array(), '2.3.4', true );
+		wp_enqueue_script( 'the-capon-front-aos', get_template_directory_uri() . '/js/front-page-aos.js', array( 'aos' ), _S_VERSION, true );
+	}
+
 	// Скрипты для личного кабинета
 	if ( is_page_template( 'page-lk.php' ) ) {
-		// Подключаем систему уведомлений для ЛК
+		wp_enqueue_style( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', array(), '1.9.4' );
+		wp_enqueue_script( 'leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', array(), '1.9.4', true );
 		wp_enqueue_script( 'the-capon-auth-notifications', get_template_directory_uri() . '/js/auth-notifications.js', array(), _S_VERSION, false );
-		wp_enqueue_script( 'the-capon-user-account', get_template_directory_uri() . '/js/user-account.js', array( 'the-capon-main-script', 'the-capon-auth-notifications' ), _S_VERSION, true );
+		wp_enqueue_script( 'the-capon-user-account', get_template_directory_uri() . '/js/user-account.js', array( 'the-capon-main-script', 'the-capon-auth-notifications', 'leaflet' ), _S_VERSION, true );
 	}
 
 	// Скрипты для авторизации

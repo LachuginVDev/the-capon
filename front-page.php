@@ -31,7 +31,7 @@ get_header();
 
 <!-- Секция 1: Картинка слева, текст справа -->
 <section class="content-section section-1">
-	<div class="section-half section-image" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/1.png' ); ?>');">
+	<div class="section-half section-image" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/1.png' ); ?>');" data-aos="fade-right">
 		<div class="image-content">
 			<h2 class="image-title">Kaplun</h2>
 			<div class="image-overlay">
@@ -39,7 +39,7 @@ get_header();
 			</div>
 		</div>
 	</div>
-	<div class="section-half section-text">
+	<div class="section-half section-text" data-aos="fade-left">
 		<div class="text-content">
 			<h2 class="text-title">стиль<br>
                 и элегантность<br>
@@ -50,7 +50,7 @@ get_header();
 
 <!-- Секция 2: Текст слева, картинка справа -->
 <section class="content-section section-2">
-	<div class="section-half section-text">
+	<div class="section-half section-text" data-aos="fade-right">
 		<div class="text-content">
 			<h2 class="text-title">легкая
                 женственность
@@ -58,7 +58,7 @@ get_header();
                 нежных</h2>
 		</div>
 	</div>
-	<div class="section-half section-image" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/2.png' ); ?>');">
+	<div class="section-half section-image" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/2.png' ); ?>');" data-aos="fade-left">
 		<div class="image-content">
 			<h2 class="image-title">kookla</h2>
 			<div class="image-overlay">
@@ -70,7 +70,7 @@ get_header();
 
 <!-- Секция 3: Картинка слева, текст справа -->
 <section class="content-section section-3">
-	<div class="section-half section-image" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/3.png' ); ?>');">
+	<div class="section-half section-image" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/3.png' ); ?>');" data-aos="fade-right">
 		<div class="image-content">
 			<h2 class="image-title">marry mark</h2>
 			<div class="image-overlay">
@@ -78,7 +78,7 @@ get_header();
 			</div>
 		</div>
 	</div>
-	<div class="section-half section-text">
+	<div class="section-half section-text" data-aos="fade-left">
 		<div class="text-content">
 			<h2 class="text-title">вечерний
                 стиль для тех
@@ -90,14 +90,14 @@ get_header();
 
 <!-- Секция 4: Текст слева, картинка справа -->
 <section class="content-section section-4">
-	<div class="section-half section-text">
+	<div class="section-half section-text" data-aos="fade-right">
 		<div class="text-content">
 			<h2 class="text-title">стильный
                 размер для самых
                 свободных</h2>
 		</div>
 	</div>
-	<div class="section-half section-image" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/4.png' ); ?>');">
+	<div class="section-half section-image" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/4.png' ); ?>');" data-aos="fade-left">
 		<div class="image-content">
 			<h2 class="image-title">plus size</h2>
 			<div class="image-overlay">
@@ -108,7 +108,7 @@ get_header();
 </section>
 
 <!-- Секция О нас -->
-<section class="about-section" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/bg2.png' ); ?>');">
+<section class="about-section" style="background-image: url('<?php echo esc_url( get_template_directory_uri() . '/assets/images/bg2.png' ); ?>');" data-aos="fade-up">
 	<div class="about-content">
 		<h2 class="about-title">О нас</h2>
 	</div>
@@ -119,13 +119,13 @@ get_header();
 	<div class="container">
 		<div class="news-content">
 			<!-- Левый блок -->
-			<div class="news-sidebar">
+			<div class="news-sidebar" data-aos="fade-right">
 				<h3 class="sidebar-title">мечта дизайнера</h3>
 				<p class="sidebar-text">Сердце и душа, Стоящие за дизайном Татьяны Каплум</p>
 			</div>
 			
 			<!-- Основной блок -->
-			<div class="news-main">
+			<div class="news-main" data-aos="fade-left">
 				<h2 class="news-title">Модный Дом Татьяны Каплун - это наша большая и дружная семья, где каждый выполняет свою важную роль. Это семейное дело 
 					с глубокой историей, которая началась в Нижнем Новгороде 
 					в 1995 году.</h2>
@@ -150,10 +150,10 @@ get_header();
 <!-- Секция Trunk Show -->
 <section class="trunk-show-section">
 	<div class="container">
-		<h2 class="trunk-show-title">trunk show</h2>
+		<h2 class="trunk-show-title" data-aos="fade-up">trunk show</h2>
 		<div class="trunk-show-cards">
 			<!-- Левая карточка -->
-			<div class="trunk-card-wrapper trunk-card-left">
+			<div class="trunk-card-wrapper trunk-card-left" data-aos="fade-up" data-aos-delay="0">
 				<div class="card-date">
 					<span class="date-number">15-19</span>
 					<span class="date-month">апрель</span>
@@ -163,7 +163,7 @@ get_header();
 			</div>
 			
 			<!-- Центральная карточка (самая большая) -->
-			<div class="trunk-card-wrapper trunk-card-center">
+			<div class="trunk-card-wrapper trunk-card-center" data-aos="fade-up" data-aos-delay="100">
 				<div class="card-date">
 					<span class="date-number">22-26</span>
 					<span class="date-month">май</span>
@@ -173,7 +173,7 @@ get_header();
 			</div>
 			
 			<!-- Правая карточка -->
-			<div class="trunk-card-wrapper trunk-card-right">
+			<div class="trunk-card-wrapper trunk-card-right" data-aos="fade-up" data-aos-delay="200">
 				<div class="card-date">
 					<span class="date-number">01-05</span>
 					<span class="date-month">июнь</span>
@@ -183,7 +183,7 @@ get_header();
 			</div>
 		</div>
 		
-		<button class="trunk-show-btn">
+		<button class="trunk-show-btn" data-aos="fade-up">
 			показать больше
 			<svg width="94" height="8" viewBox="0 0 94 8" fill="none" xmlns="http://www.w3.org/2000/svg">
 				<path d="M93.3536 4.3534C93.5488 4.15814 93.5488 3.84156 93.3536 3.6463L90.1716 0.464318C89.9763 0.269056 89.6597 0.269056 89.4645 0.464318C89.2692 0.65958 89.2692 0.976163 89.4645 1.17142L92.2929 3.99985L89.4645 6.82828C89.2692 7.02354 89.2692 7.34012 89.4645 7.53538C89.6597 7.73065 89.9763 7.73065 90.1716 7.53538L93.3536 4.3534ZM0 4.49985H93V3.49985H0V4.49985Z" fill="black" />

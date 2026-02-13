@@ -389,6 +389,8 @@ function render_edit_user_form($user) {
 
             $names        = isset($_POST['stores_name']) ? (array) $_POST['stores_name'] : array();
             $addresses    = isset($_POST['stores_address']) ? (array) $_POST['stores_address'] : array();
+            $countries    = isset($_POST['stores_country']) ? (array) $_POST['stores_country'] : array();
+            $cities       = isset($_POST['stores_city']) ? (array) $_POST['stores_city'] : array();
             $phones       = isset($_POST['stores_phone']) ? (array) $_POST['stores_phone'] : array();
             $emails       = isset($_POST['stores_email']) ? (array) $_POST['stores_email'] : array();
             $websites     = isset($_POST['stores_website']) ? (array) $_POST['stores_website'] : array();
@@ -402,6 +404,8 @@ function render_edit_user_form($user) {
             $max_count    = max(
                 count($names),
                 count($addresses),
+                count($countries),
+                count($cities),
                 count($phones),
                 count($emails),
                 count($websites),
@@ -440,6 +444,8 @@ function render_edit_user_form($user) {
                 $clean_stores[] = array(
                     'name'        => $name,
                     'address'     => $address,
+                    'country'     => isset($countries[$i]) ? sanitize_text_field($countries[$i]) : '',
+                    'city'        => isset($cities[$i]) ? sanitize_text_field($cities[$i]) : '',
                     'phone'       => isset($phones[$i]) ? sanitize_text_field($phones[$i]) : '',
                     'email'       => isset($emails[$i]) ? sanitize_email($emails[$i]) : '',
                     'website'     => isset($websites[$i]) ? esc_url_raw($websites[$i]) : '',
@@ -470,6 +476,8 @@ function render_edit_user_form($user) {
         $stores_for_form[] = array(
             'name'        => '',
             'address'     => '',
+            'country'     => '',
+            'city'        => '',
             'phone'       => '',
             'email'       => '',
             'website'     => '',
@@ -492,14 +500,16 @@ function render_edit_user_form($user) {
             .stores-admin-table .store-delete { text-align: center; vertical-align: middle; }
         </style>';
         
+        $geocode_nonce = wp_create_nonce('update_user_stores_nonce');
+
         echo '<table class="widefat fixed striped stores-admin-table" style="margin-top: 15px;">';
         echo '<thead>
                 <tr>
                     <th style="width: 3%;">#</th>
                     <th style="width: 15%;">Название</th>
-                    <th style="width: 20%;">Адрес</th>
+                    <th style="width: 22%;">Адрес</th>
+                    <th style="width: 18%;">Страна / Город</th>
                     <th style="width: 18%;">Контакты</th>
-                    <th style="width: 15%;">Координаты</th>
                     <th style="width: 24%;">Описание / Соцсети</th>
                     <th style="width: 5%;">Удалить</th>
                 </tr>
@@ -508,20 +518,41 @@ function render_edit_user_form($user) {
 
         foreach ($stores_for_form as $idx => $store) {
             $is_last_empty = ($idx === count($stores_for_form) - 1) && empty($store['name']) && empty($store['address']);
-            echo '<tr>';
+            $country_val = isset($store['country']) ? $store['country'] : '';
+            $city_val    = isset($store['city']) ? $store['city'] : '';
+            $lat_val     = isset($store['lat']) ? $store['lat'] : '';
+            $lng_val     = isset($store['lng']) ? $store['lng'] : '';
+            $geo_display  = ($country_val || $city_val) ? 'Страна: ' . ($country_val ?: '—') . ', город: ' . ($city_val ?: '—') : '';
+            $coords_display = ($lat_val && $lng_val) ? $lat_val . ', ' . $lng_val : '';
+
+            echo '<tr class="store-row">';
             echo '<td class="store-number">' . ($idx + 1) . '</td>';
 
-            // Название
             echo '<td>';
             echo '<input type="text" name="stores_name[]" value="' . esc_attr(isset($store['name']) ? $store['name'] : '') . '" class="regular-text" placeholder="Название магазина">';
             echo '</td>';
 
-            // Адрес
             echo '<td>';
-            echo '<input type="text" name="stores_address[]" value="' . esc_attr(isset($store['address']) ? $store['address'] : '') . '" class="regular-text" placeholder="Адрес">';
+            echo '<input type="text" name="stores_address[]" value="' . esc_attr(isset($store['address']) ? $store['address'] : '') . '" class="regular-text stores-address-input" placeholder="Адрес — координаты подставятся автоматически">';
             echo '</td>';
 
-            // Контакты: телефон / email / сайт
+            echo '<td class="store-geo-cell">';
+            echo '<input type="hidden" name="stores_country[]" value="' . esc_attr($country_val) . '" class="stores-country">';
+            echo '<input type="hidden" name="stores_city[]" value="' . esc_attr($city_val) . '" class="stores-city">';
+            echo '<input type="hidden" name="stores_lat[]" value="' . esc_attr($lat_val) . '" class="stores-lat">';
+            echo '<input type="hidden" name="stores_lng[]" value="' . esc_attr($lng_val) . '" class="stores-lng">';
+            echo '<span class="store-geo-display" style="font-size: 12px; color: #666;">';
+            if ($geo_display) {
+                echo esc_html( $geo_display );
+                if ($coords_display) {
+                    echo '<br>Координаты: ' . esc_html( $coords_display );
+                }
+            } else {
+                echo 'Введите адрес — подставятся автоматически';
+            }
+            echo '</span>';
+            echo '</td>';
+
             $phone_val   = isset($store['phone']) ? $store['phone'] : '';
             $email_val   = isset($store['email']) ? $store['email'] : '';
             $website_val = isset($store['website']) ? $store['website'] : '';
@@ -531,24 +562,13 @@ function render_edit_user_form($user) {
             echo '<input type="url" name="stores_website[]" value="' . esc_attr($website_val) . '" class="regular-text" placeholder="Сайт">';
             echo '</td>';
 
-            // Координаты
-            $lat_val = isset($store['lat']) ? $store['lat'] : '';
-            $lng_val = isset($store['lng']) ? $store['lng'] : '';
-            echo '<td>';
-            echo '<input type="text" name="stores_lat[]" value="' . esc_attr($lat_val) . '" class="regular-text" placeholder="Широта" style="margin-bottom: 5px;">';
-            echo '<input type="text" name="stores_lng[]" value="' . esc_attr($lng_val) . '" class="regular-text" placeholder="Долгота" style="margin-bottom: 5px;">';
-            echo '<p class="description">Формат: 55.402727, 43.823609</p>';
-            echo '</td>';
-
-            // Описание и соцсети
-            $desc_val   = isset($store['description']) ? $store['description'] : '';
+            $desc_val    = isset($store['description']) ? $store['description'] : '';
             $socials_val = isset($store['socials']) ? $store['socials'] : '';
             echo '<td>';
             echo '<textarea name="stores_description[]" rows="2" class="large-text" placeholder="Описание магазина" style="margin-bottom: 5px;">' . esc_textarea($desc_val) . '</textarea>';
             echo '<textarea name="stores_socials[]" rows="2" class="large-text" placeholder="Соцсети (одна в строке)">' . esc_textarea($socials_val) . '</textarea>';
             echo '</td>';
 
-            // Чекбокс удаления (не показываем для последней пустой строки)
             echo '<td class="store-delete">';
             if (!$is_last_empty) {
                 echo '<label style="display: block; text-align: center;"><input type="checkbox" name="stores_delete[' . $idx . ']" value="1"> Удалить</label>';
@@ -569,6 +589,66 @@ function render_edit_user_form($user) {
               </p>';
 
         echo '</form>';
+
+        echo '<script>
+        (function() {
+            var ajaxurl = ' . wp_json_encode( admin_url( 'admin-ajax.php' ) ) . ';
+            var nonce = ' . wp_json_encode( $geocode_nonce ) . ';
+            function doGeocode(row, address, display) {
+                if (!address) return;
+                if (display) display.textContent = "Поиск координат...";
+                var formData = new FormData();
+                formData.append("action", "geocode_address");
+                formData.append("nonce", nonce);
+                formData.append("address", address);
+                fetch(ajaxurl, { method: "POST", body: formData })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (!res.success || !res.data) {
+                            if (display) display.textContent = "Адрес не найден.";
+                            return;
+                        }
+                        var d = res.data;
+                        var latEl = row.querySelector(".stores-lat");
+                        var lngEl = row.querySelector(".stores-lng");
+                        var countryEl = row.querySelector(".stores-country");
+                        var cityEl = row.querySelector(".stores-city");
+                        if (latEl) latEl.value = d.lat || "";
+                        if (lngEl) lngEl.value = d.lng || "";
+                        if (countryEl) countryEl.value = d.country || "";
+                        if (cityEl) cityEl.value = d.city || "";
+                        var text = "";
+                        if (d.country || d.city) text = "Страна: " + (d.country || "—") + ", город: " + (d.city || "—");
+                        if (d.lat && d.lng) text += (text ? "<br>" : "") + "Координаты: " + d.lat + ", " + d.lng;
+                        if (display) display.innerHTML = text || "Введите адрес — подставятся автоматически";
+                    })
+                    .catch(function() {
+                        if (display) display.textContent = "Ошибка запроса.";
+                    });
+            }
+            document.addEventListener("DOMContentLoaded", function() {
+                var rows = document.querySelectorAll(".stores-admin-table .store-row");
+                rows.forEach(function(row, idx) {
+                    var input = row.querySelector(".stores-address-input");
+                    var latEl = row.querySelector(".stores-lat");
+                    var address = input ? (input.value || "").trim() : "";
+                    var needGeocode = address && latEl && !latEl.value;
+                    if (needGeocode) {
+                        setTimeout(function() {
+                            doGeocode(row, address, row.querySelector(".store-geo-display"));
+                        }, idx * 1200);
+                    }
+                });
+                document.querySelectorAll(".stores-admin-table .stores-address-input").forEach(function(input) {
+                    input.addEventListener("blur", function() {
+                        var row = this.closest("tr");
+                        if (!row) return;
+                        doGeocode(row, (this.value || "").trim(), row.querySelector(".store-geo-display"));
+                    });
+                });
+            });
+        })();
+        </script>';
     }
     
     echo '</div>';

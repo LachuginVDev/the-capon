@@ -379,80 +379,173 @@ add_action('wp_ajax_nopriv_save_user_stores', function() {
 });
 
 /**
- * Геокодирование адреса через Яндекс (координаты по городу + адресу).
+ * Геокодирование адреса через Nominatim (OpenStreetMap), бесплатно.
  *
  * @param string $query Полный адрес.
- * @return array [lat, lng] или ['', ''] при ошибке.
+ * @return array [ 'lat' => '', 'lng' => '', 'country' => '', 'city' => '' ].
  */
 function the_capon_geocode_address( $query ) {
+    $empty = array( 'lat' => '', 'lng' => '', 'country' => '', 'city' => '' );
     $query = trim( (string) $query );
     if ( '' === $query ) {
-        return array( '', '' );
+        return $empty;
     }
 
-    $args = array(
-        'format'  => 'json',
-        'geocode' => $query,
-        'lang'    => 'ru_RU',
-        'results' => 1,
+    $url = add_query_arg(
+        array(
+            'q'      => $query,
+            'format' => 'json',
+            'limit'  => 1,
+        ),
+        'https://nominatim.openstreetmap.org/search'
     );
 
-    // Если есть ключ, добавляем его.
-    if ( defined( 'THE_CAPON_YANDEX_API_KEY' ) && THE_CAPON_YANDEX_API_KEY ) {
-        $args['apikey'] = THE_CAPON_YANDEX_API_KEY;
-    }
-
-    $url      = 'https://geocode-maps.yandex.ru/1.x/?' . http_build_query( $args, '', '&' );
     $response = wp_remote_get(
         $url,
         array(
-            'timeout'     => 10,
-            'sslverify'   => false, // упрощаем, чтобы избежать проблем с SSL на хостинге
-            'httpversion' => '1.1',
+            'timeout'   => 10,
+            'sslverify' => true,
+            'headers'   => array(
+                'User-Agent'      => 'TheCaponWedding/1.0 (WordPress)',
+                'Accept-Language' => 'ru',
+            ),
         )
     );
 
-    if ( is_wp_error( $response ) ) {
-        return array( '', '' );
-    }
-
-    $code = wp_remote_retrieve_response_code( $response );
-    if ( $code !== 200 ) {
-        return array( '', '' );
+    if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
+        return $empty;
     }
 
     $body = wp_remote_retrieve_body( $response );
-    if ( empty( $body ) ) {
-        return array( '', '' );
-    }
-
     $data = json_decode( $body, true );
-    if ( ! is_array( $data )
-        || empty( $data['response']['GeoObjectCollection']['featureMember'] )
-        || empty( $data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos'] )
-    ) {
-        return array( '', '' );
+    if ( ! is_array( $data ) || empty( $data[0] ) ) {
+        return $empty;
     }
 
-    $pos = $data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos'];
-    $pos = explode( ' ', trim( $pos ) );
+    $first = $data[0];
+    $lat   = isset( $first['lat'] ) ? trim( (string) $first['lat'] ) : '';
+    $lng   = isset( $first['lon'] ) ? trim( (string) $first['lon'] ) : '';
 
-    if ( count( $pos ) !== 2 ) {
-        return array( '', '' );
+    if ( $lat === '' || $lng === '' ) {
+        return $empty;
     }
-
-    // В ответе сначала долгота, потом широта.
-    $lng = trim( $pos[0] );
-    $lat = trim( $pos[1 ]);
-
-    // Проверяем, что координаты валидны
     $lat_float = floatval( $lat );
     $lng_float = floatval( $lng );
     if ( $lat_float === 0.0 && $lng_float === 0.0 ) {
-        return array( '', '' );
+        return $empty;
     }
 
-    return array( $lat, $lng );
+    $country = '';
+    $city    = '';
+    $addr    = isset( $first['address'] ) && is_array( $first['address'] ) ? $first['address'] : array();
+    if ( ! empty( $addr['country'] ) ) {
+        $country = trim( (string) $addr['country'] );
+    }
+    foreach ( array( 'city', 'town', 'village', 'municipality', 'county' ) as $key ) {
+        if ( ! empty( $addr[ $key ] ) && $city === '' ) {
+            $city = trim( (string) $addr[ $key ] );
+            break;
+        }
+    }
+
+    return array(
+        'lat'     => $lat,
+        'lng'     => $lng,
+        'country' => $country,
+        'city'    => $city,
+    );
+}
+
+/**
+ * Обратное геокодирование: координаты → страна и город (Nominatim). Кэш в transient.
+ *
+ * @param string|float $lat Широта.
+ * @param string|float $lng Долгота.
+ * @return array [ 'country' => '', 'city' => '' ].
+ */
+function the_capon_reverse_geocode( $lat, $lng ) {
+    $empty = array( 'country' => '', 'city' => '' );
+    $lat   = floatval( $lat );
+    $lng   = floatval( $lng );
+    if ( $lat === 0.0 && $lng === 0.0 ) {
+        return $empty;
+    }
+
+    $cache_key = 'the_capon_rev_' . round( $lat, 4 ) . '_' . round( $lng, 4 );
+    $cached    = get_transient( $cache_key );
+    if ( is_array( $cached ) ) {
+        return $cached;
+    }
+
+    static $last_request_time = 0;
+    $now = time();
+    if ( $last_request_time > 0 && ( $now - $last_request_time ) < 1 ) {
+        sleep( 1 );
+    }
+    $last_request_time = time();
+
+    $url = add_query_arg(
+        array(
+            'lat'    => $lat,
+            'lon'    => $lng,
+            'format' => 'json',
+        ),
+        'https://nominatim.openstreetmap.org/reverse'
+    );
+
+    $response = wp_remote_get(
+        $url,
+        array(
+            'timeout'   => 5,
+            'sslverify' => true,
+            'headers'   => array(
+                'User-Agent'    => 'TheCaponWedding/1.0 (WordPress)',
+                'Accept-Language' => 'ru',
+            ),
+        )
+    );
+
+    if ( is_wp_error( $response ) || wp_remote_retrieve_response_code( $response ) !== 200 ) {
+        return $empty;
+    }
+
+    $body = wp_remote_retrieve_body( $response );
+    $data = json_decode( $body, true );
+    if ( ! is_array( $data ) || empty( $data['address'] ) ) {
+        return $empty;
+    }
+
+    $addr    = $data['address'];
+    $country = isset( $addr['country'] ) ? trim( (string) $addr['country'] ) : '';
+    $city    = '';
+    foreach ( array( 'city', 'town', 'village', 'municipality', 'county' ) as $key ) {
+        if ( ! empty( $addr[ $key ] ) ) {
+            $city = trim( (string) $addr[ $key ] );
+            break;
+        }
+    }
+
+    $result = array( 'country' => $country, 'city' => $city );
+    set_transient( $cache_key, $result, DAY_IN_SECONDS );
+
+    return $result;
+}
+
+add_action( 'wp_ajax_geocode_address', 'the_capon_ajax_geocode_address' );
+add_action( 'wp_ajax_nopriv_geocode_address', function() {
+    wp_send_json_error( array( 'message' => 'Вы не авторизованы' ) );
+} );
+
+function the_capon_ajax_geocode_address() {
+    if ( ! get_current_user_id() ) {
+        wp_send_json_error( array( 'message' => 'Требуется вход' ) );
+    }
+    if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'update_user_stores_nonce' ) ) {
+        wp_send_json_error( array( 'message' => 'Ошибка безопасности' ) );
+    }
+    $address = isset( $_POST['address'] ) ? sanitize_text_field( wp_unslash( $_POST['address'] ) ) : '';
+    $result  = the_capon_geocode_address( $address );
+    wp_send_json_success( $result );
 }
 
 function the_capon_get_user_stores() {
@@ -519,6 +612,8 @@ function the_capon_save_user_stores() {
 
         $clean[] = array(
             'name'        => $name,
+            'country'     => isset( $store['country'] ) ? sanitize_text_field( $store['country'] ) : '',
+            'city'        => isset( $store['city'] ) ? sanitize_text_field( $store['city'] ) : '',
             'address'     => $address,
             'phone'       => isset( $store['phone'] ) ? sanitize_text_field( $store['phone'] ) : '',
             'email'       => isset( $store['email'] ) ? sanitize_email( $store['email'] ) : '',

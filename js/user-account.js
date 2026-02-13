@@ -425,6 +425,8 @@
         if (stores.length === 0) {
             stores = [{
                 name: '',
+                country: '',
+                city: '',
                 address: '',
                 phone: '',
                 email: '',
@@ -454,18 +456,21 @@
 
             html += '<div class="form-group">';
             html += '<label>Адрес</label>';
-            html += '<input type="text" name="store_address" value="' + (store.address || '') + '">';
+            html += '<input type="text" name="store_address" value="' + (store.address || '').replace(/"/g, '&quot;') + '" class="lk-store-address-input" placeholder="Введите адрес — координаты подставятся автоматически">';
             html += '</div>';
 
-            // Формируем строку координат для отображения
-            var coordsStr = '';
-            if (store.lat && store.lng) {
-                coordsStr = store.lat + ', ' + store.lng;
-            }
+            html += '<input type="hidden" name="store_lat" value="' + (store.lat || '') + '">';
+            html += '<input type="hidden" name="store_lng" value="' + (store.lng || '') + '">';
+            html += '<input type="hidden" name="store_country" value="' + (store.country || '').replace(/"/g, '&quot;') + '">';
+            html += '<input type="hidden" name="store_city" value="' + (store.city || '').replace(/"/g, '&quot;') + '">';
 
-            html += '<div class="form-group">';
-            html += '<label>Координаты <span style="font-size: 12px; color: #666; font-weight: 400;">(формат: 55.402727, 43.823609)</span></label>';
-            html += '<input type="text" name="store_coordinates" value="' + coordsStr + '" placeholder="55.402727, 43.823609">';
+            html += '<div class="form-group lk-store-map-wrap" data-index="' + index + '">';
+            html += '<label>Карта</label>';
+            html += '<div id="lk-store-map-' + index + '" class="lk-store-minimap" style="height: 200px; width: 100%; display: ' + (store.lat && store.lng ? 'block' : 'none') + ';"></div>';
+            html += '<p class="lk-store-geocode-hint" style="font-size: 12px; color: #666; margin-top: 4px; display: ' + (store.lat && store.lng ? 'none' : 'block') + ';">Поиск координат по адресу...</p>';
+            if (store.country || store.city) {
+                html += '<p class="lk-store-location" style="font-size: 12px; color: #666; margin-top: 4px;">Страна: ' + (store.country || '—').replace(/</g, '&lt;') + ', город: ' + (store.city || '—').replace(/</g, '&lt;') + '</p>';
+            }
             html += '</div>';
 
             html += '<div class="form-group">';
@@ -506,6 +511,134 @@
         html += '</div>';
 
         container.innerHTML = html;
+        initLkStoreMaps();
+        autoGeocodeStoresWithAddress();
+    }
+
+    function autoGeocodeStoresWithAddress() {
+        var container = document.getElementById('lk-stores-container');
+        if (!container) return;
+        var items = container.querySelectorAll('.lk-store-item');
+        var showNotification = window.AuthNotifications && window.AuthNotifications.show ? window.AuthNotifications.show : null;
+        var needGeocode = [];
+        items.forEach(function(item) {
+            var address = (item.querySelector('input[name="store_address"]') || {}).value;
+            var lat = (item.querySelector('input[name="store_lat"]') || {}).value;
+            var lng = (item.querySelector('input[name="store_lng"]') || {}).value;
+            if (address && address.trim() && (!lat || !lng)) needGeocode.push(item);
+        });
+        needGeocode.forEach(function(item, i) {
+            setTimeout(function() {
+                handleStoreGeocode(item, showNotification, true);
+            }, i * 1200);
+        });
+    }
+
+    function handleStoreGeocode(item, showNotification, silent) {
+        var addressInput = item.querySelector('input[name="store_address"]');
+        var address = addressInput ? addressInput.value.trim() : '';
+        if (!address) {
+            if (!silent && showNotification) showNotification('Введите адрес', 'error');
+            return;
+        }
+        if (typeof theCaponAjax === 'undefined' || !theCaponAjax.ajaxurl || !theCaponAjax.stores_nonce) {
+            if (!silent && showNotification) showNotification('Ошибка: AJAX не настроен', 'error');
+            return;
+        }
+
+        var mapWrap = item.querySelector('.lk-store-map-wrap');
+        var hint = mapWrap ? mapWrap.querySelector('.lk-store-geocode-hint') : null;
+        if (hint) {
+            hint.style.display = 'block';
+            hint.textContent = 'Поиск координат...';
+        }
+
+        var formData = new FormData();
+        formData.append('action', 'geocode_address');
+        formData.append('nonce', theCaponAjax.stores_nonce);
+        formData.append('address', address);
+
+        fetch(theCaponAjax.ajaxurl, { method: 'POST', body: formData })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (!res.success || !res.data) {
+                    if (hint) { hint.textContent = 'Адрес не найден. Уточните адрес.'; hint.style.display = 'block'; }
+                    if (!silent && showNotification) showNotification('Адрес не найден. Уточните адрес.', 'error');
+                    return;
+                }
+                var lat = res.data.lat || '';
+                var lng = res.data.lng || '';
+                var country = res.data.country || '';
+                var city = res.data.city || '';
+                var latEl = item.querySelector('input[name="store_lat"]');
+                var lngEl = item.querySelector('input[name="store_lng"]');
+                var countryEl = item.querySelector('input[name="store_country"]');
+                var cityEl = item.querySelector('input[name="store_city"]');
+                if (latEl) latEl.value = lat;
+                if (lngEl) lngEl.value = lng;
+                if (countryEl) countryEl.value = country;
+                if (cityEl) cityEl.value = city;
+
+                var mapDiv = mapWrap ? mapWrap.querySelector('.lk-store-minimap') : null;
+                var locationP = mapWrap ? mapWrap.querySelector('.lk-store-location') : null;
+                if (mapWrap && mapDiv) {
+                    mapDiv.style.display = (lat && lng) ? 'block' : 'none';
+                    if (hint) {
+                        hint.style.display = (lat && lng) ? 'none' : 'block';
+                        if (lat && lng) hint.textContent = '';
+                    }
+                    if (locationP) {
+                        locationP.textContent = 'Страна: ' + (country || '—') + ', город: ' + (city || '—');
+                        locationP.style.display = (country || city) ? 'block' : 'none';
+                    } else if (country || city) {
+                        var p = document.createElement('p');
+                        p.className = 'lk-store-location';
+                        p.style.cssText = 'font-size: 12px; color: #666; margin-top: 4px;';
+                        p.textContent = 'Страна: ' + (country || '—') + ', город: ' + (city || '—');
+                        mapWrap.appendChild(p);
+                    }
+                }
+                if (lat && lng) initOneLkStoreMap(item);
+                if (!silent && showNotification && (lat && lng)) showNotification('Координаты определены', 'success');
+            })
+            .catch(function() {
+                if (hint) { hint.textContent = 'Ошибка запроса. Попробуйте позже.'; hint.style.display = 'block'; }
+                if (!silent && showNotification) showNotification('Ошибка запроса. Попробуйте позже.', 'error');
+            });
+    }
+
+    function initOneLkStoreMap(item) {
+        var latEl = item.querySelector('input[name="store_lat"]');
+        var lngEl = item.querySelector('input[name="store_lng"]');
+        var lat = latEl ? parseFloat(latEl.value, 10) : NaN;
+        var lng = lngEl ? parseFloat(lngEl.value, 10) : NaN;
+        if (isNaN(lat) || isNaN(lng)) return;
+        var index = item.getAttribute('data-index');
+        var mapId = 'lk-store-map-' + index;
+        var mapDiv = document.getElementById(mapId);
+        if (!mapDiv || typeof L === 'undefined') return;
+        if (mapDiv._lkMap) return;
+        try {
+            var map = L.map(mapId).setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+            L.marker([lat, lng]).addTo(map);
+            mapDiv._lkMap = map;
+        } catch (err) {
+            console.error('LK store map init error:', err);
+        }
+    }
+
+    function initLkStoreMaps() {
+        var container = document.getElementById('lk-stores-container');
+        if (!container || typeof L === 'undefined') return;
+        var items = container.querySelectorAll('.lk-store-item');
+        items.forEach(function(item) {
+            var latEl = item.querySelector('input[name="store_lat"]');
+            var lngEl = item.querySelector('input[name="store_lng"]');
+            if (latEl && lngEl && latEl.value && lngEl.value) initOneLkStoreMap(item);
+        });
     }
 
     function collectStoresFromForm() {
@@ -521,21 +654,15 @@
                 return el ? el.value.trim() : '';
             };
 
-            var coordinates = getVal('input[name="store_coordinates"]');
-            var lat = '';
-            var lng = '';
-            
-            // Парсим координаты из строки "lat, lng"
-            if (coordinates) {
-                var parts = coordinates.split(',');
-                if (parts.length === 2) {
-                    lat = parts[0].trim();
-                    lng = parts[1].trim();
-                }
-            }
+            var lat = getVal('input[name="store_lat"]');
+            var lng = getVal('input[name="store_lng"]');
+            var country = getVal('input[name="store_country"]');
+            var city = getVal('input[name="store_city"]');
 
             stores.push({
                 name: getVal('input[name="store_name"]'),
+                country: country,
+                city: city,
                 address: getVal('input[name="store_address"]'),
                 phone: getVal('input[name="store_phone"]'),
                 email: getVal('input[name="store_email"]'),
@@ -601,6 +728,14 @@
             }
         });
 
+        container.addEventListener('focusout', function(e) {
+            if (e.target && e.target.matches && e.target.matches('input[name="store_address"]')) {
+                var item = e.target.closest('.lk-store-item');
+                var showNotification = window.AuthNotifications && window.AuthNotifications.show ? window.AuthNotifications.show : null;
+                if (item) handleStoreGeocode(item, showNotification, false);
+            }
+        });
+
         // Делегирование событий для добавления/удаления/сохранения
         container.addEventListener('click', function(e) {
             const addBtn = e.target.closest('#lk-add-store');
@@ -614,6 +749,8 @@
                 const currentStores = collectStoresFromForm();
                 currentStores.push({
                     name: '',
+                    country: '',
+                    city: '',
                     address: '',
                     phone: '',
                     email: '',
